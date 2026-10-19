@@ -1,0 +1,11 @@
+{
+  "download_dir": "C:\\Users\\G Force\\Downloads\\DownloaderApp",
+  "default_video_quality": "best",
+  "default_audio_format": "mp3",
+  "default_audio_bitrate": "320",
+  "embed_thumbnail": true,
+  "embed_metadata": true,
+  "browser_cookies": "none",
+  "concurrent_downloads": 3,
+  "port": 5000
+}

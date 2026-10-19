@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Faydrop • Universal Video & Audio Downloader by Faysal</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+  <link rel="apple-touch-icon" href="/static/images/icon-192.png">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: {
+              900: '#070913',
+              800: '#0D1122',
+              700: '#161E34',
+              600: '#1F2948'
+            },
+            accent: {
+              purple: '#8B5CF6',
+              cyan: '#06B6D4',
+              pink: '#EC4899',
+              emerald: '#10B981'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body
+  class="bg-[#070913] text-slate-100 min-h-screen flex flex-col justify-between selection:bg-purple-500 selection:text-white">
+
+  <!-- Floating Ambient Glow Elements -->
+  <div
+    class="fixed top-0 left-1/4 w-72 md:w-96 h-72 md:h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse">
+  </div>
+  <div
+    class="fixed bottom-10 right-1/4 w-72 md:w-96 h-72 md:h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse"
+    style="animation-delay: 2s;"></div>
+
+  <!-- Main Navigation Header (Mobile-First) -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-[#070913]/90 border-b border-white/10 px-3 sm:px-6 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
+
+      <!-- Brand Logo & Developer Tag -->
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <div
+          class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-purple-900/60 to-slate-900 border border-purple-500/30 flex items-center justify-center shadow-lg shadow-purple-500/25 shrink-0 p-1.5 transition-all hover:scale-105">
+          <img src="/static/images/logo.png" alt="Faydrop Logo"
+            class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]">
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <span
+              class="text-base sm:text-xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-cyan-400 to-pink-400">Faydrop</span>
+            <span
+              class="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-bold tracking-wider">PRO</span>
+          </div>
+
+          <!-- Professional Developer Badge -->
+          <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span>Crafted by</span>
+            <span
+              class="font-bold text-white font-mono bg-slate-800/80 px-1.5 py-0.2 rounded border border-white/10 hover:border-cyan-400/50 transition-colors">Faysal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Navigation & Actions -->
+      <div class="flex items-center gap-1.5 sm:gap-2.5">
+        <!-- Engine Status Pill (Desktop) -->
+        <div id="system-status-pill"
+          class="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-white/5 text-[11px] text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span id="status-text">Engine Ready • FFmpeg 7.1</span>
+        </div>
+
+        <!-- Open Download Folder Button -->
+        <button id="btn-open-download-dir" title="Open Download Folder"
+          class="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 text-xs text-slate-300 hover:text-white transition-all active:scale-95">
+          <i data-lucide="folder" class="w-4 h-4 text-cyan-400"></i>
+          <span class="hidden sm:inline font-medium">Folder</span>
+        </button>
+
+        <!-- Settings Button -->
+        <button id="btn-open-settings" title="Settings"
+          class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 text-slate-300 hover:text-white transition-all active:scale-95">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-8 flex-1 w-full space-y-6 sm:space-y-8">
+
+    <!-- Hero Section -->
+    <div class="text-center space-y-2.5 pt-1 sm:pt-3">
+      <!-- <div
+        class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full dev-badge text-purple-200 text-xs font-semibold">
+        <img src="/static/images/logo.png" alt="" class="w-3.5 h-3.5 object-contain">
+        <span>Engineered by Faysal • Next-Gen Media Downloader</span>
+      </div> -->
+      <h1 class="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+        Download Any Video & Audio with <span class="gradient-text">Faydrop</span>
+      </h1>
+      <p class="text-slate-400 max-w-xl mx-auto text-xs sm:text-sm">
+        Universal personal media downloader for YouTube (4K/60fps, Shorts), Facebook (Watch, Reels), TikTok, Instagram,
+        and 1000+ sites.
+      </p>
+    </div>
+
+    <!-- Smart Input Bar (Mobile-First) -->
+    <div class="glass-panel p-3 sm:p-4 max-w-3xl mx-auto neon-glow-purple border border-purple-500/30">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+
+        <!-- Detected Platform Icon (Desktop) -->
+        <div id="platform-icon-container"
+          class="hidden sm:flex items-center justify-center w-12 h-12 rounded-xl bg-slate-800/90 text-purple-400 border border-white/10 shrink-0">
+          <i id="platform-icon" data-lucide="link" class="w-5 h-5"></i>
+        </div>
+
+        <!-- URL Input with Paste & Clear Controls -->
+        <div class="relative flex-1">
+          <input type="url" id="url-input" placeholder="Paste YouTube, Facebook, Shorts, Reels link here..."
+            class="w-full h-12 sm:h-13 pl-3.5 pr-20 sm:pr-24 rounded-xl bg-slate-900/95 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all font-sans"
+            autocomplete="off" spellcheck="false">
+
+          <!-- Clear Button -->
+          <button id="btn-clear-url"
+            class="absolute right-12 sm:right-14 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 hidden transition-all">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Paste from clipboard button -->
+          <button id="btn-paste-clipboard" title="Paste from clipboard"
+            class="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 border border-white/10 active:scale-95 transition-all">
+            <i data-lucide="clipboard" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>Paste</span>
+          </button>
+        </div>
+
+        <!-- Analyze Button -->
+        <button id="btn-analyze"
+          class="w-full sm:w-auto gradient-btn h-12 sm:h-13 px-6 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25 active:scale-95 transition-all shrink-0">
+          <span id="analyze-btn-text" class="flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Analyze Link</span>
+          </span>
+          <span id="analyze-spinner" class="hidden flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
+            </svg>
+            <span>Inspecting...</span>
+          </span>
+        </button>
+      </div>
+
+      <!-- Supported Platforms Bar (Mobile Swipeable) -->
+      <div class="mt-2.5 flex items-center justify-between gap-2 text-xs text-slate-400 pt-2 border-t border-white/5">
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 whitespace-nowrap w-full">
+          <span class="text-slate-500 font-semibold text-[11px] shrink-0">Supported Platforms:</span>
+          <span
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20 text-[11px] font-semibold">
+            <i data-lucide="youtube" class="w-3 h-3"></i> YouTube / Shorts
+          </span>
+          <span
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[11px] font-semibold">
+            <i data-lucide="facebook" class="w-3 h-3"></i> Facebook / Reels
+          </span>
+          <span
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-pink-500/10 text-pink-400 border border-pink-500/20 text-[11px] font-semibold">
+            <i data-lucide="instagram" class="w-3 h-3"></i> Instagram
+          </span>
+          <span
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[11px] font-semibold">
+            <i data-lucide="music-2" class="w-3 h-3"></i> TikTok
+          </span>
+          <span
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[11px] font-semibold">
+            <i data-lucide="globe" class="w-3 h-3"></i> +1000 Web Sites
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Alert Banner -->
+    <div id="error-banner"
+      class="hidden max-w-3xl mx-auto p-3.5 rounded-xl bg-red-950/50 border border-red-500/40 text-red-200 flex items-start gap-2.5 transition-all shadow-lg">
+      <i data-lucide="alert-circle" class="w-5 h-5 text-red-400 shrink-0 mt-0.5"></i>
+      <div class="flex-1 text-xs sm:text-sm">
+        <p id="error-message" class="font-bold">Error analyzing link</p>
+        <p id="error-hint" class="text-[11px] text-red-300/80 mt-0.5"></p>
+      </div>
+      <button id="btn-close-error" class="text-red-400 hover:text-white p-1">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Media Analysis Result Card (Animated slide down) -->
+    <div id="media-card"
+      class="hidden glass-panel p-4 sm:p-6 max-w-3xl mx-auto space-y-4 sm:space-y-6 transition-all duration-300 border-purple-500/30">
+
+      <!-- Top Section: Media Info & Preview -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-start">
+
+        <!-- Thumbnail / Platform Preview Container with Icon Fallback -->
+        <div id="media-preview-box"
+          class="md:col-span-5 relative group rounded-xl overflow-hidden border border-white/10 bg-slate-900 aspect-video shadow-xl flex items-center justify-center">
+          <!-- Fallback Icon Placeholder -->
+          <div id="media-fallback-icon" class="flex flex-col items-center justify-center text-purple-400 gap-2">
+            <i id="media-main-icon" data-lucide="video" class="w-12 h-12 stroke-[1.5]"></i>
+            <span class="text-xs font-semibold text-slate-400">Media Preview</span>
+          </div>
+
+          <!-- Main Image -->
+          <img id="media-thumbnail" src="" alt="Thumbnail" referrerpolicy="no-referrer"
+            class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            style="display: none;">
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none">
+          </div>
+
+          <!-- Duration Badge -->
+          <span id="media-duration"
+            class="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/80 text-white text-[11px] font-mono font-medium border border-white/10">00:00</span>
+
+          <!-- Platform Badge -->
+          <span id="media-platform-badge"
+            class="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 shadow-md border">
+            <i id="media-platform-icon" data-lucide="video" class="w-3.5 h-3.5"></i>
+            <span id="media-platform-name">Platform</span>
+          </span>
+        </div>
+
+        <!-- Title, Channel, Stats -->
+        <div class="md:col-span-7 space-y-2.5">
+          <h2 id="media-title" class="text-base sm:text-lg font-bold text-white line-clamp-2 leading-snug">Media Title
+          </h2>
+
+          <div class="flex items-center gap-2 text-xs text-slate-300 flex-wrap">
+            <div
+              class="flex items-center gap-1 font-medium text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/20 text-[11px]">
+              <i data-lucide="user-check" class="w-3 h-3 text-cyan-400"></i>
+              <span id="media-uploader">Channel Name</span>
+            </div>
+
+            <div id="media-views-container" class="flex items-center gap-1 text-slate-400 text-[11px]">
+              <i data-lucide="eye" class="w-3 h-3"></i>
+              <span id="media-views">0 views</span>
+            </div>
+
+            <a id="media-external-link" href="#" target="_blank"
+              class="flex items-center gap-1 text-slate-400 hover:text-cyan-400 transition-colors ml-auto text-[11px]">
+              <span>Source</span>
+              <i data-lucide="external-link" class="w-3 h-3"></i>
+            </a>
+          </div>
+
+          <!-- Format Category Switcher Tabs (Segmented Control) -->
+          <div class="pt-1.5">
+            <div class="flex items-center p-1 rounded-xl bg-slate-900/90 border border-white/10">
+              <button id="tab-video"
+                class="flex-1 py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all bg-purple-600 text-white shadow-md active:scale-98">
+                <i data-lucide="video" class="w-3.5 h-3.5"></i>
+                <span>Video (MP4 / MKV)</span>
+              </button>
+              <button id="tab-audio"
+                class="flex-1 py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all text-slate-400 hover:text-white active:scale-98">
+                <i data-lucide="music" class="w-3.5 h-3.5"></i>
+                <span>Audio (MP3 / M4A)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formats Selection Grid -->
+      <div class="space-y-3 pt-2 border-t border-white/10">
+
+        <!-- Video Options Panel -->
+        <div id="panel-video" class="space-y-2.5">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span class="font-semibold text-slate-300">Select Resolution:</span>
+            <div class="flex items-center gap-1.5">
+              <span>Container:</span>
+              <div class="flex items-center rounded-lg bg-slate-900 p-0.5 border border-white/10">
+                <button id="btn-ext-mp4"
+                  class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-600 text-white">MP4</button>
+                <button id="btn-ext-mkv"
+                  class="px-2 py-0.5 rounded-md text-[11px] font-bold text-slate-400 hover:text-white">MKV</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Resolutions Cards Grid (2 cols on mobile, 4 on desktop) -->
+          <div id="video-formats-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Audio Options Panel -->
+        <div id="panel-audio" class="hidden space-y-2.5">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span class="font-semibold text-slate-300">Select Audio Bitrate:</span>
+            <span class="text-cyan-400 font-semibold text-[11px]">320kbps MP3 / AAC</span>
+          </div>
+
+          <!-- Audio Presets Cards Grid (2 cols on mobile, 4 on desktop) -->
+          <div id="audio-formats-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Optional Custom Filename Input (Accordion) -->
+        <div class="pt-1">
+          <button id="btn-toggle-filename"
+            class="text-[11px] text-slate-400 hover:text-purple-300 flex items-center gap-1 transition-colors">
+            <i data-lucide="pencil" class="w-3 h-3"></i>
+            <span>Rename file before downloading (optional)</span>
+          </button>
+          <div id="custom-filename-box" class="hidden mt-1.5">
+            <input type="text" id="custom-filename-input" placeholder="Custom filename without extension..."
+              class="w-full h-9 px-3 rounded-lg bg-slate-900 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-purple-500 transition-all font-sans">
+          </div>
+        </div>
+
+        <!-- Download Action Button -->
+        <div class="pt-1">
+          <button id="btn-start-download"
+            class="w-full gradient-btn h-12 sm:h-13 py-3 px-6 rounded-xl font-extrabold text-white text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-purple-500/25 active:scale-98 transition-all">
+            <i data-lucide="download" class="w-5 h-5"></i>
+            <span id="download-button-label">Download MP4 (1080p)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Downloads Section -->
+    <div id="active-downloads-section" class="max-w-3xl mx-auto space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></div>
+          <h3 class="font-bold text-white text-sm sm:text-base">Active Downloads</h3>
+          <span id="active-count-badge"
+            class="px-2 py-0.2 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-mono font-bold">0</span>
+        </div>
+      </div>
+
+      <!-- Active Downloads Cards List -->
+      <div id="active-downloads-list" class="space-y-2.5">
+        <div id="no-active-downloads" class="glass-card p-5 text-center text-slate-500 text-xs">
+          No downloads running right now. Paste any link above to start downloading.
+        </div>
+      </div>
+    </div>
+
+    <!-- Download History Section (Organized & Mobile-First) -->
+    <div class="max-w-3xl mx-auto space-y-3 pt-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div class="flex items-center gap-2">
+          <i data-lucide="history" class="w-4 h-4 text-purple-400"></i>
+          <h3 class="font-bold text-white text-sm sm:text-base">Download History</h3>
+          <span id="history-count-badge"
+            class="px-2 py-0.2 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-mono font-bold">0</span>
+        </div>
+
+        <!-- Filter Buttons & Clear History -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <div class="flex items-center rounded-lg bg-slate-900 p-0.5 border border-white/10 text-xs font-semibold">
+            <button id="filter-all" class="px-2.5 py-1 rounded-md bg-purple-600 text-white transition-all">All</button>
+            <button id="filter-video"
+              class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition-all">Videos</button>
+            <button id="filter-audio"
+              class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition-all">Audio</button>
+          </div>
+
+          <button id="btn-refresh-history" title="Refresh history"
+            class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/5 transition-all">
+            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+          </button>
+
+          <button id="btn-clear-history"
+            class="px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-white/5 text-xs transition-all flex items-center gap-1">
+            <i data-lucide="trash-2" class="w-3 h-3"></i>
+            <span class="hidden sm:inline">Clear</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search input for history items -->
+      <div class="relative">
+        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+        <input type="text" id="history-search-input" placeholder="Filter downloaded items by title..."
+          class="w-full h-8 pl-8 pr-3 rounded-lg bg-slate-900/80 border border-white/5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-purple-500">
+      </div>
+
+      <!-- History Table / Cards -->
+      <div id="history-list" class="space-y-2">
+        <div id="no-history-msg" class="glass-card p-6 text-center text-slate-500 text-xs">
+          Your downloaded media history will appear here.
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer with Faydrop & Developer Tag (Faysal) -->
+  <footer class="mt-12 border-t border-white/10 py-5 px-4 text-center text-xs text-slate-500">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+
+      <!-- Logo + Developer Credit Tag -->
+      <div class="flex items-center gap-2.5">
+        <div
+          class="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-900/60 to-slate-900 border border-purple-500/30 flex items-center justify-center p-1 shadow-sm shrink-0">
+          <img src="/static/images/logo.png" alt="Faydrop Logo" class="w-full h-full object-contain">
+        </div>
+        <div class="text-left">
+          <p class="text-slate-200 font-extrabold text-xs">Faydrop</p>
+          <p class="text-[11px] text-slate-400">Designed & Developed by <span
+              class="font-bold text-purple-300">Faysal</span></p>
+        </div>
+      </div>
+
+      <!-- Engine specs -->
+      <div class="flex items-center gap-2 text-[11px] text-slate-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span>yt-dlp Engine • FFmpeg 7.1 Integration</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Settings Modal Backdrop -->
+  <div id="settings-modal" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-3 sm:p-4">
+    <div
+      class="glass-panel p-5 sm:p-6 max-w-md w-full space-y-4 border border-purple-500/40 neon-glow-purple max-h-[90vh] overflow-y-auto">
+
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2">
+          <img src="/static/images/logo.png" alt="Faydrop" class="w-6 h-6 object-contain">
+          <div>
+            <div class="flex items-center gap-1.5 text-white font-bold text-base">
+              <span>Faydrop Settings</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Developer: <span class="font-bold text-purple-300">Faysal</span></p>
+          </div>
+        </div>
+        <button id="btn-close-settings" class="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Settings Content -->
+      <div class="space-y-3.5 text-xs">
+
+        <!-- Download Directory -->
+        <div class="space-y-1">
+          <label class="font-semibold text-slate-300">Download Directory:</label>
+          <div class="flex gap-1.5">
+            <input type="text" id="settings-download-dir"
+              class="flex-1 h-8 px-2.5 rounded-lg bg-slate-900 border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-purple-500">
+            <button id="btn-settings-open-dir"
+              class="px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs">
+              Open
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-500">Destination folder on your Windows computer.</p>
+        </div>
+
+        <!-- Browser Cookies Integration -->
+        <div class="space-y-1">
+          <label class="font-semibold text-slate-300">Browser Cookies (For Private/Login Content):</label>
+          <select id="settings-browser-cookies"
+            class="w-full h-8 px-2.5 rounded-lg bg-slate-900 border border-white/10 text-white text-xs focus:outline-none focus:border-purple-500">
+            <option value="none">None (Standard Extraction)</option>
+            <option value="chrome">Google Chrome</option>
+            <option value="edge">Microsoft Edge</option>
+            <option value="brave">Brave Browser</option>
+            <option value="firefox">Mozilla Firefox</option>
+          </select>
+          <p class="text-[10px] text-slate-500">Enable if downloading member-only or private Facebook/YouTube videos.
+          </p>
+        </div>
+
+        <!-- Toggles: Thumbnails & Metadata -->
+        <div class="pt-2 border-t border-white/10 space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+            <input type="checkbox" id="settings-embed-metadata" checked
+              class="rounded bg-slate-900 border-white/20 text-purple-600 focus:ring-0">
+            <span>Embed metadata (Title, Artist, Album, Year)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+            <input type="checkbox" id="settings-embed-thumbnail" checked
+              class="rounded bg-slate-900 border-white/20 text-purple-600 focus:ring-0">
+            <span>Embed thumbnail as album cover art (Audio files)</span>
+          </label>
+        </div>
+
+        <!-- Diagnostics Status -->
+        <div
+          class="p-2.5 rounded-xl bg-slate-900/90 border border-white/5 space-y-1 font-mono text-[10px] text-slate-400">
+          <div class="flex justify-between">
+            <span>FFmpeg 7.1 Status:</span>
+            <span id="diag-ffmpeg" class="text-emerald-400 font-bold">Active</span>
+          </div>
+          <div class="flex justify-between">
+            <span>yt-dlp Engine:</span>
+            <span id="diag-ytdlp" class="text-cyan-400 font-bold">2026.08.19</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Node.js Runtime:</span>
+            <span id="diag-node" class="text-purple-400 font-bold">Active</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
+        <button id="btn-cancel-settings"
+          class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+          Cancel
+        </button>
+        <button id="btn-save-settings"
+          class="gradient-btn px-4 py-1.5 rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-500/20">
+          Save Settings
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/app.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>
