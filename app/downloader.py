@@ -149,7 +149,7 @@ def get_base_ydl_opts(config: dict = None) -> dict:
         "remote_components": ["ejs:github"],
         "extractor_args": {
             "youtube": {
-                "player_client": ["visionos", "android", "ios"],
+                "player_client": ["android"],
                 "formats": ["missing_pot"]
             }
         }
@@ -188,30 +188,77 @@ def analyze_url(url: str) -> dict:
     info = None
     last_error = None
 
-    # Multi-client ladder for YouTube to avoid bot verification
+    # Multi-client ladder for YouTube: Prioritize android client to prevent SABR bot detection
     if platform["key"] == "youtube":
         client_attempts = [
-            ["tv_simply"],
-            ["visionos", "android", "ios"],
-            ["mweb", "android"],
-            ["android", "ios"],
             ["android"],
-            ["ios"]
+            ["android", "ios"],
+            ["ios"],
+            ["tv_simply"],
+            ["mweb"]
         ]
     else:
         client_attempts = [None]
 
     for clients in client_attempts:
+        current_opts = dict(ydl_opts)
         if clients:
-            ydl_opts["extractor_args"]["youtube"]["player_client"] = clients
+            if "extractor_args" not in current_opts:
+                current_opts["extractor_args"] = {}
+            if "youtube" not in current_opts["extractor_args"]:
+                current_opts["extractor_args"]["youtube"] = {}
+            current_opts["extractor_args"]["youtube"]["player_client"] = clients
+
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(current_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 if info:
                     break
         except Exception as e:
             last_error = e
+            err_str = str(e).lower()
+            # If cookie error, safely retry without cookies
+            if "cookie" in err_str and "cookiesfrombrowser" in current_opts:
+                try:
+                    current_opts.pop("cookiesfrombrowser", None)
+                    with yt_dlp.YoutubeDL(current_opts) as ydl_nocookie:
+                        info = ydl_nocookie.extract_info(url, download=False)
+                        if info:
+                            break
+                except Exception as e_nocookie:
+                    last_error = e_nocookie
             continue
+
+    if not info:
+        # High-resilient fallback: Use official YouTube oEmbed API if scraping was throttled
+        if platform["key"] == "youtube":
+            try:
+                import urllib.request
+                import urllib.parse
+                import json
+                oembed_url = f"https://www.youtube.com/oembed?url={urllib.parse.quote(url)}&format=json"
+                req = urllib.request.Request(oembed_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    oe_data = json.loads(resp.read().decode("utf-8"))
+                    vid_match = re.search(r"(?:v=|\/|shorts\/)([0-9A-Za-z_-]{11})", url)
+                    vid_id = vid_match.group(1) if vid_match else "video"
+
+                    info = {
+                        "id": vid_id,
+                        "title": oe_data.get("title", "YouTube Media"),
+                        "uploader": oe_data.get("author_name", "YouTube Creator"),
+                        "thumbnail": oe_data.get("thumbnail_url") or f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg",
+                        "duration": None,
+                        "webpage_url": url,
+                        "formats": [
+                            {"format_id": "best", "resolution": "1080p", "height": 1080, "fps": 30, "tbr": 2500, "vcodec": "avc1", "acodec": "mp4a", "ext": "mp4"},
+                            {"format_id": "720p", "resolution": "720p", "height": 720, "fps": 30, "tbr": 1500, "vcodec": "avc1", "acodec": "mp4a", "ext": "mp4"},
+                            {"format_id": "480p", "resolution": "480p", "height": 480, "fps": 30, "tbr": 800, "vcodec": "avc1", "acodec": "mp4a", "ext": "mp4"},
+                            {"format_id": "360p", "resolution": "360p", "height": 360, "fps": 30, "tbr": 500, "vcodec": "avc1", "acodec": "mp4a", "ext": "mp4"},
+                        ]
+                    }
+            except Exception as oe_err:
+                print(f"[Downloader] oEmbed fallback error: {oe_err}")
 
     if not info:
         if last_error:
@@ -555,11 +602,10 @@ class DownloadManager:
             is_youtube = job.platform.get("key") == "youtube" if isinstance(job.platform, dict) else "youtube" in job.url.lower()
             if is_youtube:
                 client_ladder = [
-                    ["tv_simply"],
-                    ["visionos", "android", "ios"],
-                    ["mweb", "android"],
+                    ["android"],
                     ["android", "ios"],
-                    ["android"]
+                    ["ios"],
+                    ["tv_simply"]
                 ]
             else:
                 client_ladder = [None]

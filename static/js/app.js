@@ -88,6 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Initial Setup ---
   async function init() {
+    // 1. Immediately bind all DOM event listeners so UI is responsive instantly
+    setupEventListeners();
+
     // If on mobile or remote, hide Windows Folder button in navbar
     if (!isLocalHost && btnOpenDownloadDir) {
       btnOpenDownloadDir.classList.add('hidden');
@@ -120,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     loadHistory();
-    setupEventListeners();
     startJobPolling();
   }
 
@@ -246,11 +248,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Analyze URL Handler ---
   async function handleAnalyze() {
-    const url = urlInput.value.trim();
-    if (!url) {
+    let raw = urlInput.value.trim();
+    if (!raw) {
       showError("Please paste or type a valid video link first.");
       urlInput.focus();
       return;
+    }
+
+    // Auto-extract URL if user shared/pasted title or message with link
+    const urlMatch = raw.match(/https?:\/\/[^\s]+/i);
+    const url = urlMatch ? urlMatch[0] : raw;
+    if (url !== raw) {
+      urlInput.value = url;
+      updateInputIcon();
     }
 
     hideError();
@@ -283,6 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
     errorMessage.textContent = msg;
     errorHint.textContent = hint || "Tip: Verify that the link is public and accessible in your web browser.";
     lucide.createIcons();
+    errorBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    showToast(msg, 'error', 4500);
   }
 
   function hideError() {
