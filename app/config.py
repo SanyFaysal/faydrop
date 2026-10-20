@@ -55,9 +55,47 @@ def save_config(config: dict) -> bool:
         print(f"[Config] Error saving config.json: {e}")
         return False
 
+def get_ffmpeg_dir() -> str:
+    """Returns directory containing both FFmpeg and FFprobe executables."""
+    # 1. Check static_ffmpeg (contains full ffmpeg + ffprobe suite)
+    try:
+        import static_ffmpeg
+        static_ffmpeg.add_paths()
+        ffmpeg, _ = static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()
+        if ffmpeg and os.path.exists(ffmpeg):
+            return str(Path(ffmpeg).parent)
+    except Exception:
+        pass
+
+    # 2. Check system PATH
+    sys_ffmpeg = shutil.which("ffmpeg")
+    if sys_ffmpeg:
+        return str(Path(sys_ffmpeg).parent)
+
+    # 3. Check imageio_ffmpeg
+    try:
+        import imageio_ffmpeg
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        if exe and os.path.exists(exe):
+            return str(Path(exe).parent)
+    except Exception:
+        pass
+
+    return ""
+
 def get_ffmpeg_path() -> str:
     """Detects and returns FFmpeg executable path."""
-    # 1. Check imageio_ffmpeg
+    # 1. Check static_ffmpeg
+    try:
+        import static_ffmpeg
+        static_ffmpeg.add_paths()
+        ffmpeg, _ = static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()
+        if ffmpeg and os.path.exists(ffmpeg):
+            return ffmpeg
+    except Exception:
+        pass
+
+    # 2. Check imageio_ffmpeg
     try:
         import imageio_ffmpeg
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -66,12 +104,12 @@ def get_ffmpeg_path() -> str:
     except Exception:
         pass
 
-    # 2. Check system PATH
+    # 3. Check system PATH
     system_ffmpeg = shutil.which("ffmpeg")
     if system_ffmpeg:
         return system_ffmpeg
 
-    # 3. Check common Windows paths
+    # 4. Check common Windows paths
     candidates = [
         r"C:\ffmpeg\bin\ffmpeg.exe",
         r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",

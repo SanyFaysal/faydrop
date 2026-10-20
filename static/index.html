@@ -137,23 +137,16 @@
           <i id="platform-icon" data-lucide="link" class="w-5 h-5"></i>
         </div>
 
-        <!-- URL Input with Paste & Clear Controls -->
+        <!-- URL Input with Cross Clear Control -->
         <div class="relative flex-1">
           <input type="url" id="url-input" placeholder="Paste YouTube, Facebook, Shorts, Reels link here..."
-            class="w-full h-12 sm:h-13 pl-3.5 pr-20 sm:pr-24 rounded-xl bg-slate-900/95 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all font-sans"
+            class="w-full h-12 sm:h-13 pl-3.5 pr-11 rounded-xl bg-slate-900/95 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all font-sans"
             autocomplete="off" spellcheck="false">
 
-          <!-- Clear Button -->
-          <button id="btn-clear-url"
-            class="absolute right-12 sm:right-14 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 hidden transition-all">
+          <!-- Cross Clear Button (visible only when input is not blank) -->
+          <button id="btn-clear-url" type="button" title="Clear search"
+            class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 hidden transition-all active:scale-90">
             <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-
-          <!-- Paste from clipboard button -->
-          <button id="btn-paste-clipboard" title="Paste from clipboard"
-            class="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 border border-white/10 active:scale-95 transition-all">
-            <i data-lucide="clipboard" class="w-3.5 h-3.5 text-cyan-400"></i>
-            <span>Paste</span>
           </button>
         </div>
 

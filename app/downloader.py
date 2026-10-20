@@ -4,14 +4,17 @@ import time
 import math
 import uuid
 import threading
+import subprocess
 import traceback
 from typing import Dict, Any, Optional, Callable
 from pathlib import Path
 import yt_dlp
 
 from app.config import (
+    BASE_DIR,
     load_config,
     get_ffmpeg_path,
+    get_ffmpeg_dir,
     get_node_path,
     DEFAULT_DOWNLOAD_DIR,
     TEMP_DOWNLOAD_DIR
@@ -124,11 +127,11 @@ def identify_platform(url: str) -> dict:
     }
 
 def get_base_ydl_opts(config: dict = None) -> dict:
-    """Constructs robust base yt-dlp options with FFmpeg and JS runtime."""
+    """Constructs robust base yt-dlp options with FFmpeg, FFprobe, and JS runtime."""
     if config is None:
         config = load_config()
 
-    ffmpeg_path = get_ffmpeg_path()
+    ffmpeg_dir = get_ffmpeg_dir() or get_ffmpeg_path()
     node_path = get_node_path()
 
     opts = {
@@ -143,18 +146,29 @@ def get_base_ydl_opts(config: dict = None) -> dict:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9"
         },
+        "remote_components": ["ejs:github"],
         "extractor_args": {
             "youtube": {
-                "player_client": ["android", "ios"]
+                "player_client": ["visionos", "android", "ios"],
+                "formats": ["missing_pot"]
             }
         }
     }
 
-    if ffmpeg_path:
-        opts["ffmpeg_location"] = ffmpeg_path
+    if ffmpeg_dir:
+        opts["ffmpeg_location"] = ffmpeg_dir
 
     if node_path:
         opts["js_runtimes"] = {"node": {"path": node_path}}
+
+    # Cookie support: 1. check for cookies.txt file in project root
+    cookies_file = BASE_DIR / "cookies.txt"
+    if cookies_file.exists():
+        opts["cookiefile"] = str(cookies_file)
+    else:
+        browser = config.get("browser_cookies", "none")
+        if browser and browser != "none":
+            opts["cookiesfrombrowser"] = (browser, None, None, None)
 
     return opts
 
@@ -177,10 +191,12 @@ def analyze_url(url: str) -> dict:
     # Multi-client ladder for YouTube to avoid bot verification
     if platform["key"] == "youtube":
         client_attempts = [
+            ["tv_simply"],
+            ["visionos", "android", "ios"],
+            ["mweb", "android"],
             ["android", "ios"],
             ["android"],
-            ["ios"],
-            ["mweb", "android"]
+            ["ios"]
         ]
     else:
         client_attempts = [None]
@@ -517,10 +533,10 @@ class DownloadManager:
                     pass
 
             if height:
-                # Merge best video matching height with best audio
-                ydl_opts["format"] = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]/best"
+                # Merge best video matching height with best audio, with graceful fallbacks
+                ydl_opts["format"] = f"bestvideo[height<={height}]+bestaudio/bestvideo[height<={height}]+best/best[height<={height}]/best"
             else:
-                ydl_opts["format"] = "bestvideo+bestaudio/best"
+                ydl_opts["format"] = "bestvideo+bestaudio/bestvideo+best/best"
 
             ydl_opts["merge_output_format"] = container
             postprocessors = []
@@ -535,32 +551,156 @@ class DownloadManager:
 
         try:
             job.status = "downloading"
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # Extract info to capture title and thumbnail early
-                info = ydl.extract_info(job.url, download=True)
-                if info:
-                    job.title = info.get("title", job.title)
-                    job.thumbnail = info.get("thumbnail") or job.thumbnail
+            
+            is_youtube = job.platform.get("key") == "youtube" if isinstance(job.platform, dict) else "youtube" in job.url.lower()
+            if is_youtube:
+                client_ladder = [
+                    ["tv_simply"],
+                    ["visionos", "android", "ios"],
+                    ["mweb", "android"],
+                    ["android", "ios"],
+                    ["android"]
+                ]
+            else:
+                client_ladder = [None]
 
-                    # Detect final file
-                    expected_filename = ydl.prepare_filename(info)
-                    target_ext = job.container
-                    base_stem = Path(expected_filename).stem
-                    possible_file = download_dir / f"{base_stem}.{target_ext}"
+            info = None
+            last_download_err = None
+            successful_ydl = None
 
-                    if possible_file.exists():
-                        job.file_path = str(possible_file)
-                        job.file_name = possible_file.name
-                    elif Path(expected_filename).exists():
-                        job.file_path = expected_filename
-                        job.file_name = Path(expected_filename).name
-                    else:
-                        # Find most recently modified file in download_dir
-                        matched = list(download_dir.glob(f"{base_stem}*"))
-                        if matched:
-                            newest = max(matched, key=os.path.getmtime)
-                            job.file_path = str(newest)
-                            job.file_name = newest.name
+            for clients in client_ladder:
+                if job.cancelled:
+                    job.status = "cancelled"
+                    return
+
+                current_opts = dict(ydl_opts)
+                if clients:
+                    current_opts["extractor_args"] = {
+                        "youtube": {
+                            "player_client": clients,
+                            "formats": ["missing_pot"]
+                        }
+                    }
+
+                try:
+                    with yt_dlp.YoutubeDL(current_opts) as ydl:
+                        info = ydl.extract_info(job.url, download=True)
+                        if info:
+                            successful_ydl = ydl
+                            break
+                except Exception as dl_err:
+                    last_download_err = dl_err
+                    err_text = str(dl_err).lower()
+                    print(f"[Downloader] Client attempt {clients} encountered: {dl_err}")
+
+                    # If 403 Forbidden or format missing on DASH streams, retry this client with pre-merged 'best'
+                    if ("403" in err_text or "format" in err_text) and not job.cancelled:
+                        try:
+                            dash_fallback = dict(current_opts)
+                            dash_fallback["format"] = "best"
+                            with yt_dlp.YoutubeDL(dash_fallback) as fb_ydl:
+                                info = fb_ydl.extract_info(job.url, download=True)
+                                if info:
+                                    successful_ydl = fb_ydl
+                                    break
+                        except Exception as fb403:
+                            last_download_err = fb403
+
+                    # If thumbnail postprocessing or ffprobe glitch, retry safely without thumbnail
+                    if ("ffprobe" in err_text or "embed" in err_text or "postprocessing" in err_text) and not job.cancelled:
+                        try:
+                            fallback_opts = dict(current_opts)
+                            fallback_opts.pop("writethumbnail", None)
+                            fallback_opts["postprocessors"] = [
+                                p for p in fallback_opts.get("postprocessors", []) 
+                                if p.get("key") not in ["EmbedThumbnail", "FFmpegThumbnailsConvertor"]
+                            ]
+                            with yt_dlp.YoutubeDL(fallback_opts) as fallback_ydl:
+                                info = fallback_ydl.extract_info(job.url, download=True)
+                                if info:
+                                    successful_ydl = fallback_ydl
+                                    break
+                        except Exception as fb_err:
+                            last_download_err = fb_err
+
+                    # Otherwise continue to next client in the ladder
+
+            if not info and last_download_err:
+                raise last_download_err
+
+            if info:
+                job.title = info.get("title", job.title)
+                job.thumbnail = info.get("thumbnail") or job.thumbnail
+
+                # Detect final file
+                ydl_instance = successful_ydl or yt_dlp.YoutubeDL(ydl_opts)
+                expected_filename = ydl_instance.prepare_filename(info)
+                target_ext = job.container
+                base_stem = Path(expected_filename).stem
+                possible_file = download_dir / f"{base_stem}.{target_ext}"
+
+                if possible_file.exists():
+                    job.file_path = str(possible_file)
+                    job.file_name = possible_file.name
+                elif Path(expected_filename).exists():
+                    job.file_path = expected_filename
+                    job.file_name = Path(expected_filename).name
+                else:
+                    # Find most recently modified file in download_dir
+                    matched = list(download_dir.glob(f"{base_stem}*"))
+                    if matched:
+                        newest = max(matched, key=os.path.getmtime)
+                        job.file_path = str(newest)
+                        job.file_name = newest.name
+
+            # Explicit audio conversion guarantee: Ensure downloaded file is transcoded to target audio format
+            if job.type == "audio" and job.file_path and os.path.exists(job.file_path):
+                current_path = Path(job.file_path)
+                target_ext = (job.container or "mp3").lower().lstrip(".")
+                
+                # Check if file has the requested audio extension
+                if current_path.suffix.lower().lstrip(".") != target_ext:
+                    converted_audio_path = download_dir / f"{current_path.stem}.{target_ext}"
+                    ffmpeg_exe = get_ffmpeg_path()
+                    if ffmpeg_exe:
+                        job.status = "processing"
+                        job.progress = 99.0
+                        job.speed_str = f"Transcoding to {target_ext.upper()}..."
+                        
+                        cmd = [ffmpeg_exe, "-y", "-i", str(current_path), "-vn"]
+                        if target_ext == "mp3":
+                            bitrate = "320k"
+                            if "256" in job.quality:
+                                bitrate = "256k"
+                            elif "192" in job.quality:
+                                bitrate = "192k"
+                            elif "128" in job.quality:
+                                bitrate = "128k"
+                            cmd.extend(["-c:a", "libmp3lame", "-b:a", bitrate])
+                        elif target_ext == "m4a":
+                            cmd.extend(["-c:a", "aac", "-b:a", "192k"])
+                        elif target_ext == "wav":
+                            cmd.extend(["-c:a", "pcm_s16le"])
+                        elif target_ext == "flac":
+                            cmd.extend(["-c:a", "flac"])
+                        else:
+                            cmd.extend(["-c:a", "libmp3lame", "-b:a", "320k"])
+                            
+                        cmd.append(str(converted_audio_path))
+                        print(f"[Downloader] Converting video stream to audio ({target_ext}): {' '.join(cmd)}")
+                        try:
+                            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+                            if res.returncode == 0 and converted_audio_path.exists():
+                                # Remove original unconverted video stream
+                                try:
+                                    if current_path.resolve() != converted_audio_path.resolve() and current_path.exists():
+                                        current_path.unlink()
+                                except Exception as rm_err:
+                                    print(f"[Downloader] Cleanup notice: {rm_err}")
+                                job.file_path = str(converted_audio_path)
+                                job.file_name = converted_audio_path.name
+                        except Exception as conv_err:
+                            print(f"[Downloader] Audio transcode fallback error: {conv_err}")
 
             if job.cancelled:
                 job.status = "cancelled"

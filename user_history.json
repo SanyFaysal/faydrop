@@ -1,5 +1,29 @@
 {
-  "guest_default": [],
+  "guest_default": [
+    {
+      "id": "b600589d-d",
+      "url": "https://www.youtube.com/watch?v=aM7ZcE-Q1o4",
+      "title": "Yeshanagula - Video Song | The Paradise | Nani | Keerthy Suresh | Anirudh Ravichander | Srikanth",
+      "thumbnail": "https://i.ytimg.com/vi/aM7ZcE-Q1o4/maxresdefault.jpg",
+      "platform": {
+        "name": "YouTube",
+        "key": "youtube",
+        "icon": "youtube",
+        "color": "#FF0000"
+      },
+      "type": "audio",
+      "quality": "mp3-320",
+      "format": "mp3",
+      "file_path": "C:\\Projects\\Self\\FUN\\downloader-app\\temp_downloads\\test_song_fixed.mp3",
+      "file_name": "test_song_fixed.mp3",
+      "file_size": 8282153,
+      "file_size_str": "7.9 MB",
+      "status": "completed",
+      "timestamp": 1792472307,
+      "created_at": "2026-10-20 10:58:27",
+      "device_id": "guest_default"
+    }
+  ],
   "phone_123": [],
   "laptop_456": [
     {
@@ -35,6 +59,54 @@
       "timestamp": 1792467044,
       "created_at": "2026-10-20 09:30:44",
       "device_id": "dev_n7hixm_mvg4jpua"
+    }
+  ],
+  "dev_r0z4g2_mvg70rh0": [
+    {
+      "id": "e6a69917-6",
+      "url": "https://www.youtube.com/watch?v=aM7ZcE-Q1o4",
+      "title": "Yeshanagula - Video Song | The Paradise | Nani | Keerthy Suresh | Anirudh Ravichander | Srikanth",
+      "thumbnail": "https://i.ytimg.com/vi_webp/aM7ZcE-Q1o4/sddefault.webp?v=6ac64d48",
+      "platform": {
+        "name": "YouTube",
+        "key": "youtube",
+        "icon": "youtube",
+        "color": "#FF0000"
+      },
+      "type": "audio",
+      "quality": "mp3-320",
+      "format": "mp3",
+      "file_path": "C:\\Projects\\Self\\FUN\\downloader-app\\temp_downloads\\Yeshanagula - Video Song ｜ The Paradise ｜ Nani ｜ Keerthy Suresh ｜ Anirudh Ravichander ｜ Srikanth.mp3",
+      "file_name": "Yeshanagula - Video Song ｜ The Paradise ｜ Nani ｜ Keerthy Suresh ｜ Anirudh Ravichander ｜ Srikanth.mp3",
+      "file_size": 8282627,
+      "file_size_str": "7.9 MB",
+      "status": "completed",
+      "timestamp": 1792471595,
+      "created_at": "2026-10-20 10:46:35",
+      "device_id": "dev_r0z4g2_mvg70rh0"
+    },
+    {
+      "id": "5e1f8162-9",
+      "url": "https://www.youtube.com/watch?v=8MlH455ao4M",
+      "title": "Alan Walker x AVA - Where We Don't Fall (Official Music Video)",
+      "thumbnail": "https://i.ytimg.com/vi_webp/8MlH455ao4M/sddefault.webp",
+      "platform": {
+        "name": "YouTube",
+        "key": "youtube",
+        "icon": "youtube",
+        "color": "#FF0000"
+      },
+      "type": "video",
+      "quality": "360p",
+      "format": "mp4",
+      "file_path": "C:\\Projects\\Self\\FUN\\downloader-app\\temp_downloads\\Alan Walker x AVA - Where We Don't Fall (Official Music Video).mp4",
+      "file_name": "Alan Walker x AVA - Where We Don't Fall (Official Music Video).mp4",
+      "file_size": 12934980,
+      "file_size_str": "12.3 MB",
+      "status": "completed",
+      "timestamp": 1792471158,
+      "created_at": "2026-10-20 10:39:18",
+      "device_id": "dev_r0z4g2_mvg70rh0"
     }
   ]
 }

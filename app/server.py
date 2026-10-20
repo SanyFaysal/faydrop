@@ -278,11 +278,25 @@ def get_file(job_id: str):
     if not target_path or not os.path.exists(target_path):
         raise HTTPException(status_code=404, detail="Downloaded media file not found or already cleaned up.")
 
+    # Determine accurate media type so browsers (especially mobile) recognize audio/video correctly
+    ext = Path(target_path).suffix.lower()
+    media_type_map = {
+        ".mp3": "audio/mpeg",
+        ".m4a": "audio/mp4",
+        ".wav": "audio/wav",
+        ".flac": "audio/flac",
+        ".ogg": "audio/ogg",
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mkv": "video/x-matroska",
+    }
+    media_type = media_type_map.get(ext, "application/octet-stream")
+
     # Return file with attachment header to force native device download dialog
     return FileResponse(
         path=target_path,
         filename=target_name,
-        media_type="application/octet-stream",
+        media_type=media_type,
         content_disposition_type="attachment"
     )
 

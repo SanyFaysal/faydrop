@@ -379,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
       card.addEventListener('click', () => {
         document.querySelectorAll('#video-formats-grid .format-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
+        state.selectedType = 'video';
         state.selectedResolution = f.resolution;
         state.selectedVideoFormat = f;
         updateDownloadButtonLabel();
@@ -413,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
       card.addEventListener('click', () => {
         document.querySelectorAll('#audio-formats-grid .format-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
+        state.selectedType = 'audio';
         state.selectedAudioPreset = p.format_id;
         updateDownloadButtonLabel();
       });
@@ -428,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       const preset = (state.analyzedMedia?.audio_formats || []).find(p => p.format_id === state.selectedAudioPreset);
       const title = preset ? preset.title : 'MP3 (320 kbps)';
-      downloadButtonLabel.textContent = `Download Audio • ${title}`;
+      downloadButtonLabel.textContent = `Convert & Download Audio • ${title}`;
     }
   }
 
@@ -831,20 +833,22 @@ document.addEventListener('DOMContentLoaded', () => {
       urlInput.focus();
     });
 
-    btnPasteClipboard.addEventListener('click', async () => {
-      try {
-        const text = await navigator.clipboard.readText();
-        if (text) {
-          urlInput.value = text.trim();
-          updateInputIcon();
-          handleAnalyze();
-        } else {
-          showToast("Clipboard is empty", "info");
+    if (btnPasteClipboard) {
+      btnPasteClipboard.addEventListener('click', async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            urlInput.value = text.trim();
+            updateInputIcon();
+            handleAnalyze();
+          } else {
+            showToast("Clipboard is empty", "info");
+          }
+        } catch (err) {
+          showToast("Please paste the link manually into the box.", "info");
         }
-      } catch (err) {
-        showToast("Please paste the link manually into the box.", "info");
-      }
-    });
+      });
+    }
 
     btnAnalyze.addEventListener('click', handleAnalyze);
     btnCloseError.addEventListener('click', hideError);
