@@ -8,7 +8,23 @@ import argparse
 from pathlib import Path
 import uvicorn
 
+# Ensure UTF-8 output on Windows terminal
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from app.config import load_config, get_ffmpeg_path, DEFAULT_DOWNLOAD_DIR
+
+def get_local_ip() -> str:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"
 
 def is_port_in_use(port: int, host: str = "127.0.0.1") -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -43,8 +59,8 @@ def main():
     env_port = int(os.environ.get("PORT", 0)) if os.environ.get("PORT") else 0
     chosen_port = args.port or env_port or config.get("port", 5000)
     
-    # In cloud environments (PORT is set or --host passed), bind to 0.0.0.0
-    host = args.host or ("0.0.0.0" if os.environ.get("PORT") else "127.0.0.1")
+    # Bind to 0.0.0.0 to enable access from phone/tablet on same Wi-Fi
+    host = args.host or "0.0.0.0"
 
     if not os.environ.get("PORT") and is_port_in_use(chosen_port, host):
         alt_port = find_available_port(chosen_port + 1)
@@ -53,16 +69,19 @@ def main():
 
     ffmpeg_path = get_ffmpeg_path()
 
+    local_ip = get_local_ip()
+
     print("=" * 65)
-    print("  ⚡ Faydrop • Video & Audio Downloader by Faysal ⚡")
+    print("  * Faydrop - Video & Audio Downloader by Faysal *")
     print("=" * 65)
-    print(f"  • Web UI:        http://{host}:{chosen_port}")
-    print(f"  • Downloads Dir: {config.get('download_dir', DEFAULT_DOWNLOAD_DIR)}")
+    print(f"  • Local PC:      http://localhost:{chosen_port}")
+    print(f"  • Phone/Network: http://{local_ip}:{chosen_port}")
+    print(f"  • Hidden Admin:  http://localhost:{chosen_port}/admin-control")
     print(f"  • FFmpeg Engine: {'Online (' + ffmpeg_path + ')' if ffmpeg_path else 'Not Detected'}")
     print("=" * 65)
 
     if not args.no_browser and not os.environ.get("PORT"):
-        open_browser_delayed(f"http://{host}:{chosen_port}")
+        open_browser_delayed(f"http://localhost:{chosen_port}")
 
     # Run Uvicorn server
     uvicorn.run(

@@ -1,4 +1,4 @@
-// OmniStream Application Logic • Developed by Faysal
+// Faydrop Application Logic • Developed by Faysal
 document.addEventListener('DOMContentLoaded', () => {
   // Application State
   const state = {
@@ -9,12 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedContainer: 'mp4',
     selectedAudioPreset: 'mp3-320',
     activeJobs: new Map(),
+    autoDownloadedJobs: new Set(),
     settings: null,
     eventSources: new Map(),
     historyItems: [],
     historyFilter: 'all', // 'all' | 'video' | 'audio'
     historySearchQuery: ''
   };
+
+  const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
 
   // DOM Elements
   const urlInput = document.getElementById('url-input');
@@ -78,13 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsModal = document.getElementById('settings-modal');
   const settingsDownloadDir = document.getElementById('settings-download-dir');
   const btnSettingsOpenDir = document.getElementById('btn-settings-open-dir');
-  const settingsBrowserCookies = document.getElementById('settings-browser-cookies');
   const settingsEmbedMetadata = document.getElementById('settings-embed-metadata');
   const settingsEmbedThumbnail = document.getElementById('settings-embed-thumbnail');
   const statusText = document.getElementById('status-text');
 
-  // --- Initial System & Settings Setup ---
+  // --- Initial Setup ---
   async function init() {
+    // If on mobile or remote, hide Windows Folder button in navbar
+    if (!isLocalHost && btnOpenDownloadDir) {
+      btnOpenDownloadDir.classList.add('hidden');
+    }
+
     try {
       const status = await API.getSystemStatus();
       if (status) {
@@ -103,10 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       state.settings = await API.getSettings();
       if (state.settings && state.settings.download_dir) {
-        settingsDownloadDir.value = state.settings.download_dir;
-        settingsBrowserCookies.value = state.settings.browser_cookies || 'none';
-        settingsEmbedMetadata.checked = state.settings.embed_metadata !== false;
-        settingsEmbedThumbnail.checked = state.settings.embed_thumbnail !== false;
+        if (settingsDownloadDir) settingsDownloadDir.value = state.settings.download_dir;
+        if (settingsEmbedMetadata) settingsEmbedMetadata.checked = state.settings.embed_metadata !== false;
+        if (settingsEmbedThumbnail) settingsEmbedThumbnail.checked = state.settings.embed_thumbnail !== false;
       }
     } catch (e) {
       console.warn("Settings load failed:", e);
@@ -115,6 +122,17 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
     setupEventListeners();
     startJobPolling();
+  }
+
+  // --- Trigger Browser Download Directly onto Device ---
+  function triggerDeviceDownload(jobId, fileName) {
+    const downloadUrl = `/api/file/${jobId}`;
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.setAttribute('download', fileName || 'media');
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 200);
   }
 
   // --- URL Detection & Helper Functions ---
@@ -156,13 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Robust Thumbnail Element Generator with Vector Fallback ---
-  function renderThumbnailHtml(thumbnailUrl, platform, format, isAudio, sizeClass = 'w-12 h-12') {
+  function renderThumbnailHtml(thumbnailUrl, platform, format, isAudio, sizeClass = 'w-11 h-11 sm:w-12 sm:h-12') {
     const p = platform || { icon: 'video', color: '#8B5CF6' };
     const iconName = isAudio ? 'music' : (p.icon || 'video');
     const formatBadge = format ? format.toUpperCase() : (isAudio ? 'MP3' : 'MP4');
     const brandColor = p.color || '#8B5CF6';
 
-    // If no thumbnail URL is provided, display clean vector icon
     if (!thumbnailUrl) {
       return `
         <div class="${sizeClass} rounded-xl thumbnail-box border border-white/10 shrink-0 shadow-md">
@@ -174,14 +191,11 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // With image and automatic graceful fallback on error
     return `
       <div class="${sizeClass} rounded-xl thumbnail-box border border-white/10 shrink-0 shadow-md">
-        <!-- Fallback vector icon (always rendered underneath) -->
         <div class="thumbnail-fallback flex items-center justify-center w-full h-full" style="color: ${brandColor};">
           <i data-lucide="${iconName}" class="w-5 h-5"></i>
         </div>
-        <!-- Main Image with no-referrer & instant fallback -->
         <img 
           src="${thumbnailUrl}" 
           referrerpolicy="no-referrer"
@@ -253,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         state.analyzedMedia = res.data;
         renderMediaCard(res.data);
-        showToast("Link analyzed! Pick your format and click download.", "success");
+        showToast("Link analyzed! Pick your format and tap download.", "success");
       }
     } catch (err) {
       showError("Failed to communicate with downloader engine: " + err.message);
@@ -279,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderMediaCard(data) {
     mediaCard.classList.remove('hidden');
 
-    // Thumbnail Preview with Fallback Handler
     const platform = data.platform || detectPlatform(data.url);
     if (data.thumbnail) {
       mediaThumbnail.src = data.thumbnail;
@@ -311,24 +324,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mediaExternalLink.href = data.url;
 
-    // Platform Badge
     mediaPlatformName.textContent = platform.name;
     mediaPlatformIcon.setAttribute('data-lucide', platform.icon || 'video');
     mediaPlatformBadge.style.backgroundColor = `${platform.color || '#8B5CF6'}20`;
     mediaPlatformBadge.style.color = platform.color || '#A78BFA';
     mediaPlatformBadge.style.borderColor = `${platform.color || '#8B5CF6'}40`;
 
-    // Render Video Formats
     renderVideoFormats(data.video_formats || []);
-
-    // Render Audio Formats
     renderAudioFormats(data.audio_formats || []);
-
-    // Update CTA button label
     updateDownloadButtonLabel();
 
     lucide.createIcons();
-
     mediaCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -455,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await API.startDownload(params);
       if (res.success && res.job_id) {
-        showToast("Download started! Tracking progress below.", "success");
+        showToast("Processing media... Will auto-save to device upon completion!", "info", 4500);
         state.activeJobs.set(res.job_id, res.job);
         renderActiveDownloads();
         listenToJobProgress(res.job_id);
@@ -490,8 +496,12 @@ document.addEventListener('DOMContentLoaded', () => {
             sse.close();
             state.eventSources.delete(jobId);
             loadHistory();
-            if (job.status === 'completed') {
-              showToast(`"${job.title}" downloaded successfully!`, "success", 5000);
+
+            if (job.status === 'completed' && !state.autoDownloadedJobs.has(jobId)) {
+              state.autoDownloadedJobs.add(jobId);
+              // Trigger automatic native browser download directly onto the device!
+              triggerDeviceDownload(job.id, job.file_name);
+              showToast(`"${job.title}" saved to your device Downloads!`, "success", 6000);
             }
           }
         } catch (e) {
@@ -521,6 +531,11 @@ document.addEventListener('DOMContentLoaded', () => {
               updateActiveDownloadCard(updated);
               if (updated.status === 'completed' || updated.status === 'error' || updated.status === 'cancelled') {
                 loadHistory();
+                if (updated.status === 'completed' && !state.autoDownloadedJobs.has(jobId)) {
+                  state.autoDownloadedJobs.add(jobId);
+                  triggerDeviceDownload(updated.id, updated.file_name);
+                  showToast(`"${updated.title}" saved to your device Downloads!`, "success", 6000);
+                }
               }
             }
           } catch (e) {
@@ -591,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="job-progress-bar h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-400 progress-bar-animated transition-all duration-300" style="width: ${job.progress || 0}%"></div>
         </div>
         <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-          <span class="job-status-pill text-cyan-400 font-sans font-semibold">${job.status === 'processing' ? 'FFmpeg Processing...' : 'Downloading...'}</span>
+          <span class="job-status-pill text-cyan-400 font-sans font-semibold">${job.status === 'processing' ? 'Merging & Transcoding...' : 'Downloading...'}</span>
           <div class="flex items-center gap-2">
             <span class="job-speed">${job.speed_str || '0 B/s'}</span>
             <span class="job-eta">ETA: ${job.eta_str || '--:--'}</span>
@@ -638,12 +653,12 @@ document.addEventListener('DOMContentLoaded', () => {
         statusPill.textContent = 'Merging & Transcoding...';
         statusPill.className = 'job-status-pill text-purple-400 font-semibold animate-pulse';
       } else if (job.status === 'completed') {
-        statusPill.textContent = 'Complete!';
+        statusPill.textContent = 'Saved to Device!';
         statusPill.className = 'job-status-pill text-emerald-400 font-bold';
         setTimeout(() => {
           card.remove();
           renderActiveDownloads();
-        }, 1500);
+        }, 2000);
       } else if (job.status === 'error') {
         statusPill.textContent = `Error: ${job.error_message || 'Failed'}`;
         statusPill.className = 'job-status-pill text-red-400 font-semibold';
@@ -658,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Download History Management (Mobile-First & Organized) ---
+  // --- User-Specific Download History ---
   async function loadHistory() {
     try {
       const res = await API.getHistory();
@@ -671,15 +686,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderHistoryList() {
     const list = historyList;
-    const noHistoryMsg = document.getElementById('no-history-msg');
 
-    // Filter items based on type & search query
     let filtered = state.historyItems.filter(item => {
-      // Type filter
       if (state.historyFilter === 'video' && item.type === 'audio') return false;
       if (state.historyFilter === 'audio' && item.type !== 'audio') return false;
 
-      // Search query
       if (state.historySearchQuery) {
         const q = state.historySearchQuery.toLowerCase();
         const titleMatch = (item.title || '').toLowerCase().includes(q);
@@ -694,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filtered.length === 0) {
       list.innerHTML = `
         <div class="glass-card p-6 text-center text-slate-500 text-xs">
-          ${state.historyItems.length === 0 ? 'Your downloaded media history will appear here.' : 'No items match your filter criteria.'}
+          ${state.historyItems.length === 0 ? 'Your downloaded media on this device will appear here.' : 'No items match your filter criteria.'}
         </div>
       `;
       return;
@@ -708,9 +719,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const platform = item.platform || detectPlatform(item.url);
       const isAudio = item.type === 'audio' || (item.format && ['mp3', 'm4a', 'wav', 'flac'].includes(item.format.toLowerCase()));
-
-      // Generate clean thumbnail with vector fallback
       const thumbHtml = renderThumbnailHtml(item.thumbnail, platform, item.format, isAudio, 'w-11 h-11 sm:w-12 sm:h-12');
+
+      // Localhost controls vs Universal Device controls
+      const localControls = isLocalHost ? `
+        <button class="btn-play-history p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/5 transition-all text-xs flex items-center gap-1 active:scale-95" title="Play on Host PC">
+          <i data-lucide="play" class="w-3.5 h-3.5 fill-current text-purple-400"></i>
+          <span class="hidden sm:inline">Play PC</span>
+        </button>
+        <button class="btn-folder-history p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/5 transition-all text-xs flex items-center gap-1 active:scale-95" title="Show in Host Folder">
+          <i data-lucide="folder" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span class="hidden sm:inline">Folder</span>
+        </button>
+      ` : '';
 
       card.innerHTML = `
         <!-- Top Row: Thumbnail + Info -->
@@ -732,62 +753,57 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
-        <!-- Bottom Action Toolbar (Mobile-Optimized) -->
+        <!-- Bottom Action Toolbar (Mobile-Optimized & Device-Friendly) -->
         <div class="flex items-center gap-1.5 pt-1.5 border-t border-white/5">
-          <!-- Play / Open File (Primary Action) -->
-          <button class="btn-play-history flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 text-xs font-bold flex items-center justify-center gap-1.5 border border-purple-500/30 transition-all active:scale-95" title="Play Media File">
-            <i data-lucide="play" class="w-3 h-3 fill-current"></i>
-            <span>Play</span>
-          </button>
-
-          <!-- Show in Folder -->
-          <button class="btn-folder-history p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/5 transition-all text-xs flex items-center gap-1 active:scale-95" title="Show in Folder">
-            <i data-lucide="folder" class="w-3.5 h-3.5 text-cyan-400"></i>
-            <span class="hidden sm:inline">Folder</span>
-          </button>
-
-          <!-- Save to Browser -->
-          <a href="/api/file/${item.id}" download class="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/5 transition-all text-xs flex items-center gap-1 active:scale-95" title="Download to Browser">
+          <!-- Primary Action: Save to Device Downloads -->
+          <a href="/api/file/${item.id}" download="${item.file_name || ''}" class="btn-device-download flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 border border-emerald-500/30 transition-all active:scale-95" title="Download to this device's Downloads folder">
             <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
-            <span class="hidden sm:inline">Save</span>
+            <span>Save to Device</span>
           </a>
 
-          <!-- Delete from History -->
+          ${localControls}
+
+          <!-- Delete from User View -->
           <button class="btn-delete-history p-1.5 rounded-lg hover:bg-red-950/40 text-slate-400 hover:text-red-400 transition-all ml-auto active:scale-95" title="Remove from list">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </div>
       `;
 
-      // Event Listeners for History Card
-      const playBtn = card.querySelector('.btn-play-history');
-      playBtn.addEventListener('click', async () => {
-        if (!item.file_path) {
-          showToast("File path is unavailable", "error");
-          return;
+      if (isLocalHost) {
+        const playBtn = card.querySelector('.btn-play-history');
+        if (playBtn) {
+          playBtn.addEventListener('click', async () => {
+            if (!item.file_path) {
+              showToast("File path is unavailable", "error");
+              return;
+            }
+            try {
+              await API.openFile(item.file_path);
+            } catch (e) {
+              showToast("Failed to launch media player: " + e.message, "error");
+            }
+          });
         }
-        try {
-          await API.openFile(item.file_path);
-        } catch (e) {
-          showToast("Failed to launch media player: " + e.message, "error");
-        }
-      });
 
-      const folderBtn = card.querySelector('.btn-folder-history');
-      folderBtn.addEventListener('click', async () => {
-        try {
-          await API.openFolder(item.file_path);
-        } catch (e) {
-          showToast("Failed to open folder: " + e.message, "error");
+        const folderBtn = card.querySelector('.btn-folder-history');
+        if (folderBtn) {
+          folderBtn.addEventListener('click', async () => {
+            try {
+              await API.openFolder(item.file_path);
+            } catch (e) {
+              showToast("Failed to open folder: " + e.message, "error");
+            }
+          });
         }
-      });
+      }
 
       const deleteBtn = card.querySelector('.btn-delete-history');
       deleteBtn.addEventListener('click', async () => {
         try {
           await API.deleteHistoryItem(item.id, false);
           card.remove();
-          showToast("Item removed from history", "info");
+          showToast("Item removed from your history", "info");
           loadHistory();
         } catch (e) {
           showToast("Failed to remove item: " + e.message, "error");
@@ -876,14 +892,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnStartDownload.addEventListener('click', handleStartDownload);
 
-    btnOpenDownloadDir.addEventListener('click', async () => {
-      try {
-        await API.openFolder('');
-        showToast("Opening Downloads folder...", "info");
-      } catch (e) {
-        showToast("Error opening folder: " + e.message, "error");
-      }
-    });
+    if (btnOpenDownloadDir) {
+      btnOpenDownloadDir.addEventListener('click', async () => {
+        try {
+          await API.openFolder('');
+          showToast("Opening Downloads folder...", "info");
+        } catch (e) {
+          showToast("Error opening folder: " + e.message, "error");
+        }
+      });
+    }
 
     // History controls
     btnRefreshHistory.addEventListener('click', () => {
@@ -892,11 +910,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnClearHistory.addEventListener('click', async () => {
-      if (confirm("Clear all download history records?")) {
+      if (confirm("Clear your download history on this device?")) {
         try {
           await API.clearHistory();
           loadHistory();
-          showToast("History cleared", "info");
+          showToast("Your history has been cleared", "info");
         } catch (e) {
           showToast("Failed to clear history: " + e.message, "error");
         }
@@ -942,17 +960,18 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCloseSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
     btnCancelSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-    btnSettingsOpenDir.addEventListener('click', async () => {
-      const dir = settingsDownloadDir.value.trim();
-      await API.openFolder(dir);
-    });
+    if (btnSettingsOpenDir) {
+      btnSettingsOpenDir.addEventListener('click', async () => {
+        const dir = settingsDownloadDir.value.trim();
+        await API.openFolder(dir);
+      });
+    }
 
     btnSaveSettings.addEventListener('click', async () => {
       const newSettings = {
-        download_dir: settingsDownloadDir.value.trim(),
-        browser_cookies: settingsBrowserCookies.value,
-        embed_metadata: settingsEmbedMetadata.checked,
-        embed_thumbnail: settingsEmbedThumbnail.checked
+        download_dir: settingsDownloadDir ? settingsDownloadDir.value.trim() : undefined,
+        embed_metadata: settingsEmbedMetadata ? settingsEmbedMetadata.checked : true,
+        embed_thumbnail: settingsEmbedThumbnail ? settingsEmbedThumbnail.checked : true
       };
 
       try {

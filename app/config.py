@@ -10,9 +10,15 @@ APP_DIR = BASE_DIR / "app"
 STATIC_DIR = BASE_DIR / "static"
 CONFIG_FILE = BASE_DIR / "config.json"
 HISTORY_FILE = BASE_DIR / "history.json"
+ADMIN_HISTORY_FILE = BASE_DIR / "admin_history.json"
+USER_HISTORY_FILE = BASE_DIR / "user_history.json"
 
-# Default Downloads directory: User's Downloads/DownloaderApp
-DEFAULT_DOWNLOAD_DIR = Path.home() / "Downloads" / "DownloaderApp"
+# Temp downloads directory (for saving server space & web delivery)
+TEMP_DOWNLOAD_DIR = BASE_DIR / "temp_downloads"
+TEMP_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Default Downloads directory: User's Downloads/Faydrop
+DEFAULT_DOWNLOAD_DIR = Path.home() / "Downloads" / "Faydrop"
 DEFAULT_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_CONFIG = {

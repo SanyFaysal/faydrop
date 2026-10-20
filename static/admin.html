@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faydrop • Admin Control Center</title>
+
+  <link rel="icon" type="image/png" href="/static/images/favicon.png">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: {
+              900: '#070913',
+              800: '#0D1122',
+              700: '#161E34'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body
+  class="bg-[#070913] text-slate-100 min-h-screen flex flex-col justify-between selection:bg-purple-500 selection:text-white">
+
+  <!-- Ambient Glow -->
+  <div
+    class="fixed top-0 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse">
+  </div>
+  <div
+    class="fixed bottom-10 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse"
+    style="animation-delay: 2s;"></div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-[#070913]/90 border-b border-white/10 px-4 sm:px-8 py-3.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+
+      <!-- Brand & Admin Tag -->
+      <div class="flex items-center gap-3">
+        <a href="/"
+          class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-900/60 to-slate-900 border border-purple-500/30 flex items-center justify-center p-1.5 shadow-lg shadow-purple-500/20 hover:scale-105 transition-all">
+          <img src="/static/images/logo.png" alt="Faydrop" class="w-full h-full object-contain">
+        </a>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-lg sm:text-xl font-black tracking-tight text-white">Faydrop <span
+                class="gradient-text">Admin</span></span>
+            <span
+              class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold uppercase tracking-wider">Control
+              Panel</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Master Audit & Storage Hub • Developed by <span
+              class="text-purple-300 font-bold">Faysal</span></p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="flex items-center gap-2">
+        <a href="/"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-white/10 transition-all">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          <span>App View</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- Metrics Cards Row -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+
+      <!-- Metric 1: Total Downloads -->
+      <div class="glass-card p-4 sm:p-5 border-purple-500/20 space-y-1">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+          <span>Total Downloads</span>
+          <i data-lucide="download-cloud" class="w-4 h-4 text-purple-400"></i>
+        </div>
+        <p id="stat-total-downloads" class="text-2xl sm:text-3xl font-black text-white">0</p>
+        <p class="text-[10px] text-slate-500">Across all users & devices</p>
+      </div>
+
+      <!-- Metric 2: Total Data Processed -->
+      <div class="glass-card p-4 sm:p-5 border-cyan-500/20 space-y-1">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+          <span>Data Processed</span>
+          <i data-lucide="hard-drive" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+        <p id="stat-total-data" class="text-2xl sm:text-3xl font-black text-white">0 B</p>
+        <p class="text-[10px] text-slate-500">Cumulative bandwidth saved</p>
+      </div>
+
+      <!-- Metric 3: Unique Devices -->
+      <div class="glass-card p-4 sm:p-5 border-pink-500/20 space-y-1">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+          <span>Active Devices</span>
+          <i data-lucide="users" class="w-4 h-4 text-pink-400"></i>
+        </div>
+        <p id="stat-unique-devices" class="text-2xl sm:text-3xl font-black text-white">0</p>
+        <p class="text-[10px] text-slate-500">Unique guest client IDs</p>
+      </div>
+
+      <!-- Metric 4: Server Temp Storage Usage -->
+      <div class="glass-card p-4 sm:p-5 border-emerald-500/20 space-y-1">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+          <span>Server Temp Disk</span>
+          <i data-lucide="database" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <p id="stat-temp-disk" class="text-2xl sm:text-3xl font-black text-white">0 B</p>
+        <p id="stat-temp-files" class="text-[10px] text-slate-500">0 files on server disk</p>
+      </div>
+    </div>
+
+    <!-- Management Action Toolbar -->
+    <div
+      class="glass-panel p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-white/10">
+
+      <!-- Search Input -->
+      <div class="relative flex-1">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <input type="text" id="admin-search" placeholder="Search by title, device ID, platform or URL..."
+          class="w-full h-10 pl-9 pr-3 rounded-xl bg-slate-900 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-purple-500">
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 flex-wrap">
+
+        <!-- Clean Server Storage (Crucial feature for saving space) -->
+        <button id="btn-clean-storage"
+          class="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+          title="Deletes media files from server disk while retaining all text logs">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Clean Server Storage</span>
+        </button>
+
+        <!-- Refresh Button -->
+        <button id="btn-admin-refresh"
+          class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-all active:scale-95"
+          title="Refresh">
+          <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Export CSV -->
+        <button id="btn-admin-export"
+          class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Export CSV</span>
+        </button>
+
+        <!-- Clear Audit Log -->
+        <button id="btn-admin-clear"
+          class="p-2 rounded-xl hover:bg-red-950/50 text-slate-400 hover:text-red-400 border border-white/5 transition-all active:scale-95"
+          title="Clear all audit records">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Master History Audit Table -->
+    <div class="glass-panel overflow-hidden border-white/10">
+      <div class="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="shield-check" class="w-4 h-4 text-purple-400"></i>
+          <h3 class="font-bold text-white text-sm">Global Download Audit Log</h3>
+        </div>
+        <span id="log-count-badge"
+          class="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-mono font-bold">0
+          records</span>
+      </div>
+
+      <!-- Responsive Table Container -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900/90 text-slate-400 font-mono text-[11px] border-b border-white/5">
+            <tr>
+              <th class="py-3 px-4 font-semibold">Time & Date</th>
+              <th class="py-3 px-4 font-semibold">Media Title</th>
+              <th class="py-3 px-4 font-semibold">Platform</th>
+              <th class="py-3 px-4 font-semibold">Format</th>
+              <th class="py-3 px-4 font-semibold">Size</th>
+              <th class="py-3 px-4 font-semibold">Device / Guest ID</th>
+              <th class="py-3 px-4 font-semibold text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body" class="divide-y divide-white/5 font-sans">
+            <tr>
+              <td colspan="7" class="py-8 text-center text-slate-500 text-xs">Loading audit records...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10 py-4 px-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <span>Faydrop Admin Control Panel • Developed by Faysal</span>
+      <span>Lightweight Text Logs • High Privacy Architecture</span>
+    </div>
+  </footer>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Admin JavaScript -->
+  <script>
+    let adminRecords = [];
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `<span class="text-xs font-semibold flex-1">${msg}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/stats');
+        const data = await res.json();
+        document.getElementById('stat-total-downloads').textContent = data.total_downloads;
+        document.getElementById('stat-total-data').textContent = data.total_data_processed;
+        document.getElementById('stat-unique-devices').textContent = data.unique_devices;
+        document.getElementById('stat-temp-disk').textContent = data.temp_disk_usage;
+        document.getElementById('stat-temp-files').textContent = `${data.temp_files_count} file(s) currently staged`;
+      } catch (e) {
+        console.error("Failed to load stats", e);
+      }
+    }
+
+    async function loadAuditLog() {
+      try {
+        const query = document.getElementById('admin-search').value.trim();
+        const url = query ? `/api/admin/history?search=${encodeURIComponent(query)}` : '/api/admin/history';
+        const res = await fetch(url);
+        const data = await res.json();
+        adminRecords = data.history || [];
+        renderTable(adminRecords);
+      } catch (e) {
+        console.error("Failed to load audit log", e);
+      }
+    }
+
+    function renderTable(items) {
+      const tbody = document.getElementById('admin-table-body');
+      document.getElementById('log-count-badge').textContent = `${items.length} records`;
+
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500 text-xs">No records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => `
+        <tr class="hover:bg-slate-800/40 transition-colors">
+          <td class="py-3 px-4 font-mono text-[11px] text-slate-400 whitespace-nowrap">${item.created_at || 'Recently'}</td>
+          <td class="py-3 px-4 font-semibold text-white max-w-xs truncate" title="${item.title}">
+            <a href="${item.url}" target="_blank" class="hover:text-cyan-300 transition-colors flex items-center gap-1">
+              <span class="truncate">${item.title}</span>
+              <i data-lucide="external-link" class="w-3 h-3 text-slate-500 shrink-0"></i>
+            </a>
+          </td>
+          <td class="py-3 px-4 whitespace-nowrap">
+            <span class="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px] font-bold">
+              ${item.platform || 'Web'}
+            </span>
+          </td>
+          <td class="py-3 px-4 font-mono text-[11px] text-cyan-300 uppercase">${item.format} • ${item.quality}</td>
+          <td class="py-3 px-4 font-mono text-[11px] text-slate-300">${item.file_size_str || '0 B'}</td>
+          <td class="py-3 px-4 font-mono text-[10px] text-slate-400 whitespace-nowrap">
+            <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-white/5">${item.device_id || 'guest'}</span>
+          </td>
+          <td class="py-3 px-4 text-right whitespace-nowrap">
+            <a href="${item.url}" target="_blank" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white inline-block">
+              <i data-lucide="link" class="w-3.5 h-3.5"></i>
+            </a>
+          </td>
+        </tr>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    // Clean Storage Action
+    document.getElementById('btn-clean-storage').addEventListener('click', async () => {
+      if (confirm("Purge all temporary media files from server storage? All text audit logs will be permanently preserved.")) {
+        try {
+          const res = await fetch('/api/admin/clean-storage', { method: 'POST' });
+          const result = await res.json();
+          showToast(`Storage cleaned! Freed ${result.freed_str} (${result.deleted_files_count} files removed).`, 'success');
+          loadStats();
+        } catch (e) {
+          showToast("Failed to clean storage: " + e.message, 'error');
+        }
+      }
+    });
+
+    document.getElementById('btn-admin-refresh').addEventListener('click', () => {
+      loadStats();
+      loadAuditLog();
+      showToast("Data refreshed", "info");
+    });
+
+    document.getElementById('admin-search').addEventListener('input', () => {
+      loadAuditLog();
+    });
+
+    document.getElementById('btn-admin-clear').addEventListener('click', async () => {
+      if (confirm("Are you sure you want to permanently clear all admin audit records?")) {
+        try {
+          await fetch('/api/admin/history', { method: 'DELETE' });
+          showToast("Audit logs cleared", "info");
+          loadStats();
+          loadAuditLog();
+        } catch (e) {
+          showToast("Failed to clear logs", "error");
+        }
+      }
+    });
+
+    // Export CSV
+    document.getElementById('btn-admin-export').addEventListener('click', () => {
+      if (!adminRecords.length) {
+        showToast("No records to export", "info");
+        return;
+      }
+      let csv = "ID,Timestamp,Date,Title,Platform,Format,Quality,Size,Device_ID,URL\n";
+      adminRecords.forEach(r => {
+        const safeTitle = `"${(r.title || '').replace(/"/g, '""')}"`;
+        csv += `${r.id},${r.timestamp},"${r.created_at}",${safeTitle},${r.platform},${r.format},${r.quality},"${r.file_size_str}",${r.device_id},"${r.url}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `faydrop_audit_export_${Date.now()}.csv`;
+      link.click();
+      showToast("Exported CSV file", "success");
+    });
+
+    // Initial Load
+    loadStats();
+    loadAuditLog();
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>

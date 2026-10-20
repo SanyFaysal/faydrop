@@ -13,7 +13,8 @@ from app.config import (
     load_config,
     get_ffmpeg_path,
     get_node_path,
-    DEFAULT_DOWNLOAD_DIR
+    DEFAULT_DOWNLOAD_DIR,
+    TEMP_DOWNLOAD_DIR
 )
 from app.history import history_manager
 
@@ -144,7 +145,7 @@ def get_base_ydl_opts(config: dict = None) -> dict:
         },
         "extractor_args": {
             "youtube": {
-                "player_client": ["tv_embedded", "android", "ios", "mweb", "web"]
+                "player_client": ["android", "ios"]
             }
         }
     }
@@ -154,11 +155,6 @@ def get_base_ydl_opts(config: dict = None) -> dict:
 
     if node_path:
         opts["js_runtimes"] = {"node": {"path": node_path}}
-
-    # Browser cookies if configured and requested
-    browser = config.get("browser_cookies", "none").lower()
-    if browser in ["chrome", "edge", "firefox", "brave", "opera", "chromium"]:
-        opts["cookiesfrombrowser"] = (browser, None, None, None)
 
     return opts
 
@@ -175,20 +171,35 @@ def analyze_url(url: str) -> dict:
     config = load_config()
     ydl_opts = get_base_ydl_opts(config)
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    info = None
+    last_error = None
+
+    # Multi-client ladder for YouTube to avoid bot verification
+    if platform["key"] == "youtube":
+        client_attempts = [
+            ["android", "ios"],
+            ["android"],
+            ["ios"],
+            ["mweb", "android"]
+        ]
+    else:
+        client_attempts = [None]
+
+    for clients in client_attempts:
+        if clients:
+            ydl_opts["extractor_args"]["youtube"]["player_client"] = clients
         try:
-            info = ydl.extract_info(url, download=False)
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if info:
+                    break
         except Exception as e:
-            err_msg = str(e)
-            if "HTTP Error 429" in err_msg or "Sign in to confirm" in err_msg:
-                # Retry with mobile player client
-                ydl_opts["extractor_args"]["youtube"]["player_client"] = ["android", "ios"]
-                with yt_dlp.YoutubeDL(ydl_opts) as retry_ydl:
-                    info = retry_ydl.extract_info(url, download=False)
-            else:
-                raise e
+            last_error = e
+            continue
 
     if not info:
+        if last_error:
+            raise last_error
         raise ValueError("Could not extract media info from this URL")
 
     # If it's a playlist or multiple entries, pick the first or primary
@@ -325,14 +336,15 @@ def analyze_url(url: str) -> dict:
     }
 
 class DownloadJob:
-    def __init__(self, job_id: str, url: str, download_type: str, quality: str, container: str, custom_filename: str = "", download_dir: str = ""):
+    def __init__(self, job_id: str, url: str, download_type: str, quality: str, container: str, custom_filename: str = "", download_dir: str = "", device_id: str = "guest_default"):
         self.id = job_id
         self.url = url
         self.type = download_type  # 'video' or 'audio'
         self.quality = quality     # e.g. '1080p', '720p', 'mp3-320', etc.
         self.container = container # 'mp4', 'mkv', 'mp3', 'm4a', 'wav', 'flac'
         self.custom_filename = custom_filename
-        self.download_dir = download_dir or str(DEFAULT_DOWNLOAD_DIR)
+        self.download_dir = download_dir or str(TEMP_DOWNLOAD_DIR)
+        self.device_id = device_id or "guest_default"
 
         self.title = "Initializing..."
         self.thumbnail = ""
@@ -355,6 +367,7 @@ class DownloadJob:
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "device_id": self.device_id,
             "url": self.url,
             "title": self.title,
             "thumbnail": self.thumbnail,
@@ -381,7 +394,7 @@ class DownloadManager:
         self.jobs: Dict[str, DownloadJob] = {}
         self.lock = threading.Lock()
 
-    def create_job(self, url: str, download_type: str, quality: str, container: str, custom_filename: str = "", download_dir: str = "") -> DownloadJob:
+    def create_job(self, url: str, download_type: str, quality: str, container: str, custom_filename: str = "", download_dir: str = "", device_id: str = "guest_default") -> DownloadJob:
         job_id = str(uuid.uuid4())[:10]
         job = DownloadJob(
             job_id=job_id,
@@ -390,7 +403,8 @@ class DownloadManager:
             quality=quality,
             container=container,
             custom_filename=custom_filename,
-            download_dir=download_dir
+            download_dir=download_dir,
+            device_id=device_id
         )
         with self.lock:
             self.jobs[job_id] = job
@@ -573,7 +587,7 @@ class DownloadManager:
                 "file_size": file_size_bytes,
                 "file_size_str": format_bytes(file_size_bytes),
                 "status": "completed"
-            })
+            }, device_id=job.device_id)
 
         except DownloadCancelledException:
             job.status = "cancelled"
@@ -585,8 +599,8 @@ class DownloadManager:
             else:
                 job.status = "error"
                 clean_err = str(e)
-                if "Sign in to confirm" in clean_err:
-                    clean_err = "YouTube bot detection triggered. Try enabling browser cookies in Settings or trying another link."
+                if "Sign in to confirm" in clean_err or "bot" in clean_err.lower():
+                    clean_err = "YouTube temporarily rate-limited requests from this session. Please wait a moment and try again."
                 elif "Private video" in clean_err:
                     clean_err = "This media is private or requires authorization."
                 elif "Video unavailable" in clean_err:
